@@ -68,6 +68,15 @@ defmodule Exonerate.Type.Object.Iterator do
           end
       end
 
+    filters =
+      [
+        quote do
+          # Compiler hack to silence "visited = false" warnings.
+          # See issue: https://github.com/E-xyza/Exonerate/issues/87#issuecomment-3173574414
+          visited = 0 > 1
+        end
+      ] ++ filters
+
     cond do
       Object.needs_seen?(context) ->
         build_seen(call, visitor_call, filters, opts[:tracked])
@@ -114,8 +123,6 @@ defmodule Exonerate.Type.Object.Iterator do
 
         Enum.reduce_while(object, {:ok, seen}, fn
           {key, value}, {:ok, seen} ->
-            visited = false
-
             with unquote_splicing(filters) do
               {:cont, {:ok, MapSet.put(seen, key)}}
             else
@@ -212,8 +219,6 @@ defmodule Exonerate.Type.Object.Iterator do
 
         Enum.reduce_while(object, :ok, fn
           {key, value}, :ok ->
-            visited = false
-
             with unquote_splicing(filters) do
               {:cont, unquote(visitor_call)(value, Path.join(path, key))}
             else
@@ -236,8 +241,6 @@ defmodule Exonerate.Type.Object.Iterator do
 
         Enum.reduce_while(object, {:ok, MapSet.new()}, fn
           {key, value}, {:ok, seen} ->
-            visited = false
-
             with unquote_splicing(filters) do
               seen =
                 if visited do
